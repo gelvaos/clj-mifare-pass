@@ -1,6 +1,8 @@
 .DS_Store
 .lein-failures
 doc/*
-target/*
+target/classes
 
 
+
+target/repl-port
