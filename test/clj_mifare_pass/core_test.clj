@@ -1,0 +1,44 @@
+(ns clj-mifare-pass.core-test
+  (:use clojure.test
+        clj-mifare-pass.core))
+
+
+(deftest hexstr2bytes-test
+  (testing "Testing hexstr2bytes function. Convertion hex string to bytes"
+    (is (= [18 52] (hexstr2bytes "1234")))
+    (is (= [255 10] (hexstr2bytes "FF0A")))
+    (is (= [0 202] (hexstr2bytes "00CA")))))
+
+(deftest bytes2hexstr-test
+  (testing "Testing bytes2hexstr function. Convertion bytes to hex string."
+    (is (= "1234" (bytes2hexstr [18 52])))
+    (is (= "FF0A" (bytes2hexstr [255 10])))
+    (is (= "00CA" (bytes2hexstr [0 202])))))
+
+;; MIFARE KEYS (LSB -> MSB)   3DES KEYS (LSB -> MSB)            MF_PASSWORD (LSB -> MSB)
+;; Key A : FF FF FF FF FF FF  DKeyA : FE FE FE FE FE FE 7E 00   0B 54 57 07 45 FE 3A E7
+;; Key B : FF FF FF FF FF FF  DKeyB : 00 7E FE FE FE FE FE FE
+;; Key A : A0 A1 A2 A3 A4 A5  DKeyA : 40 42 44 46 48 4A 7E 00   8C 7F 46 D7 6C E0 12 66
+;; Key B : B0 B1 B2 B3 B4 B5  DKeyB : 00 7E 60 62 64 66 68 6A
+
+(deftest get-d-key-a-test
+  (testing "Testing DKeyA generation."
+    (is (= [0xFE 0xFE 0xFE 0xFE 0xFE 0xFE 0x7E 0x00] (get-d-key-a [0xFF 0xFF 0xFF 0xFF 0xFF 0xFF])))
+    (is (= [0x40 0x42 0x44 0x46 0x48 0x4A 0x7E 0x00] (get-d-key-a [0xA0 0xA1 0xA2 0xA3 0xA4 0xA5])))))
+
+(deftest get-d-key-b-test
+  (testing "Testing DKeyB generation."
+    (is (= [0x00 0x7E 0xFE 0xFE 0xFE 0xFE 0xFE 0xFE] (get-d-key-b [0xFF 0xFF 0xFF 0xFF 0xFF 0xFF])))
+    (is (= [0x00 0x7E 0x60 0x62 0x64 0x66 0x68 0x6A] (get-d-key-b [0xB0 0xB1 0xB2 0xB3 0xB4 0xB5])))))
+
+(def d-key-a-1 [0xFE 0xFE 0xFE 0xFE 0xFE 0xFE 0x7E 0x00])
+(def d-key-a-2 [0x40 0x42 0x44 0x46 0x48 0x4A 0x7E 0x00])
+(def d-key-b-1 [0x00 0x7E 0xFE 0xFE 0xFE 0xFE 0xFE 0xFE])
+(def d-key-b-2 [0x00 0x7E 0x60 0x62 0x64 0x66 0x68 0x6A])
+
+(deftest get-mifare-pass-test
+  (testing "Testing Mifare Password generation."
+    (is (= (bytes2hexstr [0x0B 0x54 0x57 0x07 0x45 0xFE 0x3A 0xE7])
+           (bytes2hexstr (get-mifare-pass d-key-a-1 d-key-b-1))))
+    (is (= (bytes2hexstr [0x8C 0x7F 0x46 0xD7 0x6C 0xE0 0x12 0x66])
+           (bytes2hexstr (get-mifare-pass d-key-a-2 d-key-b-2))))))
